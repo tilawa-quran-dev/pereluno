@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pereluno</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14272e;--paper:#f3f6f4;--card:#fff;--line:#d5dfdc;--accent:#2a5d9f;--muted:#5d7078}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.6}
+.wrap{max-width:520px;margin:0 auto;padding:0 14px 40px}
+h1{font-size:1.5rem;margin:0}
+h2{font-size:1.05rem;margin:0 0 8px}
+.top{display:flex;justify-content:space-between;align-items:center;padding:14px 0}
+.brand{font-weight:700;font-size:1.3rem;letter-spacing:.5px}
+.muted{color:var(--muted);font-size:.9rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+input,select,textarea,button{font:inherit;width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+label{display:block;margin:8px 0 3px;font-size:.9rem;color:var(--muted)}
+button{background:var(--accent);color:#fff;border:0;font-weight:600;cursor:pointer;margin-top:10px}
+button.alt{background:#fff;color:var(--accent);border:1px solid var(--accent)}
+button.small{width:auto;padding:5px 12px;margin:0;font-size:.85rem}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tabs button{margin:0;background:#fff;color:var(--ink);border:1px solid var(--line)}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.hero{border-radius:18px;padding:20px 16px;color:#fff;margin-bottom:12px;transition:background .4s}
+.hero .num{font-size:4.2rem;font-weight:700;line-height:1}
+.hero .lvl{font-size:1.2rem;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.grid div{background:rgba(255,255,255,.18);border-radius:10px;padding:8px;text-align:center;font-size:.85rem}
+.grid b{display:block;font-size:1.15rem}
+.item{border-bottom:1px solid var(--line);padding:10px 0}
+.item:last-child{border:0}
+.err{color:#b3261e;font-size:.9rem;margin-top:6px}
+.hide{display:none}
+svg text{font-family:inherit;font-size:10px;fill:var(--muted)}
+.note{font-size:.8rem;color:var(--muted);margin-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div id="auth">
+  <div class="top"><span class="brand">Pereluno</span></div>
+  <div class="card">
+    <h1>Track your environment and health</h1>
+    <p class="muted">Air quality and UV index where you are, plus a daily log of your exposure.</p>
+    <label for="nm">Name</label><input id="nm" autocomplete="username">
+    <label for="pin">PIN (at least 4 digits)</label><input id="pin" type="password" inputmode="numeric" autocomplete="current-password">
+    <div id="autherr" class="err"></div>
+    <div class="row"><button onclick="doAuth(false)">Log in</button><button class="alt" onclick="doAuth(true)">Create account</button></div>
+  </div>
+  <p class="note">Your account and data are stored on this device only in this version. Secure online login comes in the next stage.</p>
+</div>
+
+<div id="app" class="hide">
+  <div class="top"><span class="brand">Pereluno</span><span><span id="who" class="muted"></span> <button class="alt small" onclick="logout()">Log out</button></span></div>
+  <div class="tabs">
+    <button id="t-today" class="on" onclick="tab('today')">Today</button>
+    <button id="t-hist" onclick="tab('hist')">History</button>
+    <button id="t-rep" onclick="tab('rep')">Reports</button>
+  </div>
+
+  <section id="p-today">
+    <div class="card">
+      <h2>Location</h2>
+      <div id="place" class="muted">No location selected yet</div>
+      <button onclick="useGPS()">Use my current location</button>
+      <div class="row" style="margin-top:8px"><input id="city" placeholder="Or type your city"><button class="alt" style="width:auto;margin:0" onclick="findCity()">Search</button></div>
+      <div id="locerr" class="err"></div>
+    </div>
+    <div id="hero" class="hero" style="background:#6b7a80">
+      <div class="lvl" id="aqlvl">Waiting for location</div>
+      <div class="num" id="aqnum">--</div>
+      <div id="aqadv">Choose your location to see the air quality right now.</div>
+      <div class="grid">
+        <div>PM2.5<b id="pm25">--</b></div>
+        <div>PM10<b id="pm10">--</b></div>
+        <div>UV index<b id="uv">--</b><span id="uvl"></span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Log today's exposure</h2>
+      <label for="mins">Time outdoors (minutes)</label><input id="mins" type="number" inputmode="numeric" min="0" value="30">
+      <label for="act">Activity</label>
+      <select id="act"><option>Walking</option><option>Running</option><option>Sports</option><option>Outdoor work</option><option>Driving</option><option>Sitting outside</option><option>Indoors only</option></select>
+      <label for="prod">Products used (optional)</label><input id="prod" placeholder="e.g. sunscreen, perfume, cleaner">
+      <label for="nt">Notes (optional)</label><textarea id="nt" rows="2"></textarea>
+      <button onclick="addLog()">Save today's log</button>
+      <div id="saved" class="muted"></div>
+    </div>
+  </section>
+
+  <section id="p-hist" class="hide"><div class="card" id="histlist"></div></section>
+
+  <section id="p-rep" class="hide">
+    <div class="card"><h2>Average air quality (last 7 days)</h2><div id="ch1"></div></div>
+    <div class="card"><h2>Average UV index (last 7 days)</h2><div id="ch2"></div></div>
+    <div class="card"><h2>Summary</h2><div id="sum"></div></div>
+  </section>
+
+  <p class="note">This app is for general information only and is not a substitute for medical advice.</p>
+</div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const store={get(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let user=null,data=null,cur=null;
+
+const AQ=[[50,'Good','#2e7d4f','The air is clean. A good time for outdoor activity.'],[100,'Moderate','#9a7b00','Acceptable for most people. Sensitive people may want to limit long time outdoors.'],[150,'Unhealthy for sensitive groups','#c26a00','People with asthma, older adults and children should spend less time outside.'],[200,'Unhealthy','#b3261e','Everyone should reduce strenuous outdoor activity.'],[300,'Very unhealthy','#7b2a8f','Avoid outdoor activity as much as possible.'],[9999,'Hazardous','#5a1a1a','Stay indoors and keep windows closed.']];
+const UVL=[[2,'Low'],[5,'Moderate'],[7,'High'],[10,'Very high'],[99,'Extreme']];
+const aq=v=>AQ.find(x=>v<=x[0]);
+const uvc=v=>UVL.find(x=>v<=x[0])[1];
+const today=()=>new Date().toLocaleDateString('en-CA');
+
+function doAuth(reg){
+  const n=$('#nm').value.trim(),p=$('#pin').value,e=$('#autherr');e.textContent='';
+  if(!n||!/^\d{4,}$/.test(p)){e.textContent='Enter a name and a PIN of at least 4 digits.';return}
+  const users=store.get('pl_users',{});
+  if(reg){if(users[n]){e.textContent='That name is taken. Choose another or log in.';return}users[n]=p;store.set('pl_users',users)}
+  else if(users[n]!==p){e.textContent='Incorrect name or PIN.';return}
+  store.set('pl_session',n);start(n);
+}
+function logout(){store.set('pl_session',null);location.reload()}
+function start(n){
+  user=n;data=store.get('pl_data_'+n,{place:null,logs:[]});
+  $('#auth').classList.add('hide');$('#app').classList.remove('hide');$('#who').textContent=n;
+  if(data.place){showPlace();loadAir()}
+  renderHist();renderRep();
+}
+const save=()=>store.set('pl_data_'+user,data);
+function tab(t){
+  for(const k of['today','hist','rep']){$('#p-'+k).classList.toggle('hide',k!==t);$('#t-'+k).classList.toggle('on',k===t)}
+  if(t==='hist')renderHist();if(t==='rep')renderRep();
+}
+function showPlace(){$('#place').textContent=data.place.name}
+async function ipLocate(){
+  try{
+    const j=await(await fetch('https://get.geojs.io/v1/ip/geo.json')).json();
+    if(!j.latitude)return false;
+    data.place={lat:+j.latitude,lon:+j.longitude,name:[j.city,j.country].filter(Boolean).join(', ')+' (approximate)'};
+    save();showPlace();loadAir();
+    $('#locerr').textContent='Exact GPS is blocked here, so an approximate location from your network was used. Type your city for better accuracy.';
+    return true;
+  }catch(e){window._ipErr=String(e&&e.message||e);return false}
+}
+function useGPS(){
+  $('#locerr').textContent='';
+  const fail=async()=>{if(!(await ipLocate()))$('#locerr').textContent='Could not get your location. Type your city and press Search. (Details: '+(window._ipErr||'blocked')+')'};
+  if(!navigator.geolocation){fail();return}
+  navigator.geolocation.getCurrentPosition(p=>{
+    data.place={lat:p.coords.latitude,lon:p.coords.longitude,name:'My current location'};save();showPlace();loadAir();
+  },fail,{timeout:12000});
+}
+async function findCity(){
+  const q=$('#city').value.trim();if(!q)return;$('#locerr').textContent='';
+  try{
+    const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&name='+encodeURIComponent(q));
+    const j=await r.json();
+    if(!j.results||!j.results.length){$('#locerr').textContent='City not found. Try a different spelling.';return}
+    const c=j.results[0];
+    data.place={lat:c.latitude,lon:c.longitude,name:[c.name,c.admin1,c.country].filter(Boolean).join(', ')};
+    save();showPlace();loadAir();
+  }catch(e){$('#locerr').textContent='Network request failed: '+String(e&&e.message||e)}
+}
+async function loadAir(){
+  $('#aqlvl').textContent='Loading...';
+  try{
+    const u=`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${data.place.lat}&longitude=${data.place.lon}&current=us_aqi,pm2_5,pm10,uv_index&timezone=auto`;
+    const j=await(await fetch(u)).json();cur=j.current;
+    const a=Math.round(cur.us_aqi),c=aq(a);
+    $('#hero').style.background=c[2];$('#aqnum').textContent=a;$('#aqlvl').textContent='Air quality: '+c[1];$('#aqadv').textContent=c[3];
+    $('#pm25').textContent=Math.round(cur.pm2_5);$('#pm10').textContent=Math.round(cur.pm10);
+    $('#uv').textContent=cur.uv_index.toFixed(1);$('#uvl').textContent=uvc(cur.uv_index);
+  }catch(e){$('#aqlvl').textContent='Could not load data';$('#aqadv').textContent='Check your internet, then choose your location again.'}
+}
+function addLog(){
+  if(!cur){$('#saved').textContent='Choose your location first so the air quality is saved with your log.';return}
+  data.logs.push({id:Date.now(),date:today(),place:data.place.name,aqi:Math.round(cur.us_aqi),uv:+cur.uv_index.toFixed(1),mins:+$('#mins').value||0,act:$('#act').value,prod:$('#prod').value.trim(),note:$('#nt').value.trim()});
+  save();$('#prod').value='';$('#nt').value='';$('#saved').textContent='Saved to your history.';renderHist();renderRep();
+}
+function delLog(id){data.logs=data.logs.filter(l=>l.id!==id);save();renderHist();renderRep()}
+function renderHist(){
+  const L=[...data.logs].reverse();
+  $('#histlist').innerHTML=L.length?L.map(l=>`<div class="item"><b>${esc(l.date)}</b> <span class="muted">${esc(l.place)}</span><br>Air: ${l.aqi} (${aq(l.aqi)[1]}) · UV: ${l.uv} (${uvc(l.uv)})<br>${esc(l.act)} for ${l.mins} min${l.prod?'<br>Products: '+esc(l.prod):''}${l.note?'<br><span class="muted">'+esc(l.note)+'</span>':''}<br><button class="alt small" style="margin-top:6px" onclick="delLog(${l.id})">Delete</button></div>`).join(''):'<p class="muted">No entries yet. Save your first log from the Today tab.</p>';
+}
+function days7(){const a=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);a.push(d.toLocaleDateString('en-CA'))}return a}
+function bars(vals,labels,colorFn,max){
+  const W=300,H=120,bw=26,g=(W-bw*7)/8;let s=`<svg viewBox="0 0 ${W} ${H+16}" width="100%" role="img">`;
+  vals.forEach((v,i)=>{const x=g+i*(bw+g);
+    if(v!=null){const h=Math.max(3,v/max*H);s+=`<rect x="${x}" y="${H-h}" width="${bw}" height="${h}" rx="4" fill="${colorFn(v)}"/><text x="${x+bw/2}" y="${H-h-3}" text-anchor="middle">${Math.round(v*10)/10}</text>`}
+    s+=`<text x="${x+bw/2}" y="${H+12}" text-anchor="middle">${labels[i].slice(5)}</text>`});
+  return s+'</svg>';
+}
+function renderRep(){
+  const D=days7(),avg=(k)=>D.map(d=>{const x=data.logs.filter(l=>l.date===d);return x.length?x.reduce((a,l)=>a+l[k],0)/x.length:null});
+  const A=avg('aqi'),U=avg('uv');
+  $('#ch1').innerHTML=bars(A,D,v=>aq(v)[2],Math.max(100,...A.filter(v=>v!=null)));
+  $('#ch2').innerHTML=bars(U,D,v=>v<3?'#2e7d4f':v<6?'#9a7b00':v<8?'#c26a00':'#b3261e',Math.max(8,...U.filter(v=>v!=null)));
+  const w=data.logs.filter(l=>D.includes(l.date));
+  $('#sum').innerHTML=w.length?`Entries: <b>${w.length}</b><br>Total time outdoors: <b>${w.reduce((a,l)=>a+l.mins,0)}</b> min<br>Highest air quality index: <b>${Math.max(...w.map(l=>l.aqi))}</b><br>Highest UV index: <b>${Math.max(...w.map(l=>l.uv))}</b><br>Entries with unhealthy air (above 100): <b>${w.filter(l=>l.aqi>100).length}</b>`:'<span class="muted">No entries in the last 7 days.</span>';
+}
+const s=store.get('pl_session',null);if(s&&store.get('pl_users',{})[s]!=null)start(s);
+</script>
+</body>
+</html>
