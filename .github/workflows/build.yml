@@ -27,7 +27,12 @@ jobs:
           M=android/app/src/main/AndroidManifest.xml
           sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>\n    <application#' $M
           sed -i 's#android:label="[^"]*"#android:label="Pereluno"#' $M
-      - run: flutter pub get
+      - name: Set app icon
+        run: |
+          flutter pub add dev:flutter_launcher_icons
+          printf '\nflutter_launcher_icons:\n  android: true\n  ios: false\n  image_path: "icon.png"\n' >> pubspec.yaml
+          flutter pub get
+          dart run flutter_launcher_icons
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
